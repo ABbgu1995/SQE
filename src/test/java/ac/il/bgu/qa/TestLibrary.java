@@ -26,7 +26,7 @@ public class TestLibrary {
 
     @Mock
     private DatabaseService mockDatabaseService;
-
+    private DatabaseService mockDatabaseService1;
     @Mock
     private ReviewService mockReviewService;
 
