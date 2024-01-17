@@ -36,6 +36,9 @@ public class TestLibrary {
     private Library library;
     @Mock
     private Book mockBook;
+
+    @Mock
+    private Book mockBook2;
     @BeforeEach
     void init() {
         MockitoAnnotations.openMocks(this);
@@ -71,13 +74,56 @@ public class TestLibrary {
 
     @Test
     public void testAddBookWithInvalidISBN() {
-        when(mockBook.getISBN()).thenReturn("9780132130806");
+        when(mockBook.getISBN()).thenReturn("Invalid ISBN");
         when(mockBook.getTitle()).thenReturn("Mock Book");
         when(mockBook.getAuthor()).thenReturn("Mock Author");
         when(mockBook.isBorrowed()).thenReturn(false);
-        Book invalidISBNBook = new Book("Invalid ISBN", null, "Author", false);
-        assertThrows(IllegalArgumentException.class, () -> library.addBook(invalidISBNBook));
+        assertThrows(IllegalArgumentException.class, () -> library.addBook(mockBook));
     }
+
+    @Test
+    public void testAddBookWithInvalidTitle() {
+        when(mockBook.getISBN()).thenReturn("9780132130806");
+        when(mockBook.getTitle()).thenReturn(null);
+        when(mockBook.getAuthor()).thenReturn("Mock Author");
+        when(mockBook.isBorrowed()).thenReturn(false);
+        assertThrows(IllegalArgumentException.class, () -> library.addBook(mockBook));
+    }
+
+    @Test
+    public void testAddBookWithInvalidAuthor() {
+        when(mockBook.getISBN()).thenReturn("9780132130806");
+        when(mockBook.getTitle()).thenReturn("Mock title");
+        when(mockBook.getAuthor()).thenReturn(null);
+        when(mockBook.isBorrowed()).thenReturn(false);
+        assertThrows(IllegalArgumentException.class, () -> library.addBook(mockBook));
+    }
+
+    @Test
+    public void testAddBookWithBorrowedBook() {
+        when(mockBook.getISBN()).thenReturn("9780132130806");
+        when(mockBook.getTitle()).thenReturn("Mock Book");
+        when(mockBook.getAuthor()).thenReturn("Mock Author");
+        when(mockBook.isBorrowed()).thenReturn(true);
+        assertThrows(IllegalArgumentException.class, () -> library.addBook(mockBook));
+    }
+
+    @Test
+    public void testAddBookWithExistingBook() {
+
+        when(mockBook2.getISBN()).thenReturn("9780132130806");
+        when(mockBook2.getTitle()).thenReturn("Mock Book");
+        when(mockBook2.getAuthor()).thenReturn("Mock Author");
+        when(mockBook2.isBorrowed()).thenReturn(false);
+        when(mockBook.getISBN()).thenReturn("9780132130806");
+        when(mockBook.getTitle()).thenReturn("Mock Book");
+        when(mockBook.getAuthor()).thenReturn("Mock Author");
+        when(mockBook.isBorrowed()).thenReturn(true);
+        when(mockDatabaseService.getBookByISBN("9780132130806")).thenReturn(mockBook2);
+        assertThrows(IllegalArgumentException.class, () -> library.addBook(mockBook2));
+    }
+
+
 
     // Test registerUser method
     @Test
@@ -119,16 +165,16 @@ public class TestLibrary {
     @Test
     void testReturnBook() {
         // Mock Book
-        when(mockBook.getISBN()).thenReturn("1234567890123");
+        when(mockBook.getISBN()).thenReturn("9780132130806");
         when(mockBook.isBorrowed()).thenReturn(true);
 
         // Mock DatabaseService
-        when(mockDatabaseService.getBookByISBN("1234567890123")).thenReturn(mockBook);
+        when(mockDatabaseService.getBookByISBN("9780132130806")).thenReturn(mockBook);
 
         // Test returnBook method
-        assertDoesNotThrow(() -> library.returnBook("1234567890123"));
+        assertDoesNotThrow(() -> library.returnBook("9780132130806"));
         verify(mockBook, times(1)).returnBook();
-        verify(mockDatabaseService, times(1)).returnBook("1234567890123");
+        verify(mockDatabaseService, times(1)).returnBook("9780132130806");
     }
 
     // Test notifyUserWithBookReviews method
@@ -137,24 +183,121 @@ public class TestLibrary {
     @Test
     void testGetBookByISBN() {
         // Mock Book
-        when(mockBook.getISBN()).thenReturn("1234567890123");
+        when(mockBook.getISBN()).thenReturn("9780132130806");
         when(mockBook.isBorrowed()).thenReturn(false);
 
         // Mock DatabaseService
-        when(mockDatabaseService.getBookByISBN("1234567890123")).thenReturn(mockBook);
+        when(mockDatabaseService.getBookByISBN("9780132130806")).thenReturn(mockBook);
 
         // Mock UserId
-        String userId = "987654321098";
+        String userId = "123456789012";
 
         // Mock DatabaseService
         when(mockDatabaseService.getUserById(userId)).thenReturn(mockUser);
 
         // Test getBookByISBN method
         assertDoesNotThrow(() -> {
-            Book result = library.getBookByISBN("1234567890123", userId);
+            Book result = library.getBookByISBN("9780132130806", userId);
             assertEquals(mockBook, result);
         });
     }
+
+    // test function public Book getBookByISBN(String ISBN, String userId)
+    @Test
+    public void testGetBookByInvalidISBN() {
+        assertThrows(IllegalArgumentException.class, () -> library.getBookByISBN("Invalid ISBN", "123456789012"));
+        verifyNoInteractions(mockDatabaseService);
+    }
+
+    @Test
+    public void testGetBookByInvalidUserId() {
+        assertThrows(IllegalArgumentException.class, () -> library.getBookByISBN("123456789012", "Invalid User Id"));
+        verifyNoInteractions(mockDatabaseService);
+    }
+
+    @Test
+    public void testGetBookByNullUserId() {
+        assertThrows(IllegalArgumentException.class, () -> library.getBookByISBN("123456789012", null));
+        verifyNoInteractions(mockDatabaseService);
+    }
+
+    @Test
+    public void testGetBookByInvalidUserIdFormat() {
+        assertThrows(IllegalArgumentException.class, () -> library.getBookByISBN("123456789012", "123"));
+        verifyNoInteractions(mockDatabaseService);
+    }
+
+    @Test
+    public void testGetBookByValidISBNNotFound() {
+        when(mockDatabaseService.getBookByISBN("9780132130806")).thenReturn(null);
+        assertThrows(BookNotFoundException.class, () -> library.getBookByISBN("9780132130806", "123456789012"));
+    }
+
+    @Test
+    public void testGetBookByBorrowedBook() {
+        Book borrowedBook = Mockito.mock(Book.class);
+        when(borrowedBook.isBorrowed()).thenReturn(true);
+        when(mockDatabaseService.getBookByISBN("9780132130806")).thenReturn(borrowedBook);
+
+        assertThrows(BookAlreadyBorrowedException.class, () -> library.getBookByISBN("9780132130806", "123456789012"));
+
+        verify(mockDatabaseService, times(1)).getBookByISBN("9780132130806");
+        verifyNoMoreInteractions(mockDatabaseService);
+    }
+
+//    @Test
+//    public void testGetBookByValidISBNAndUserId() {
+//        Book validBook = Mockito.mock(Book.class);
+//        when(validBook.isBorrowed()).thenReturn(false);
+//        when(mockDatabaseService.getBookByISBN("9780132130806")).thenReturn(validBook);
+//
+//        Book resultBook = library.getBookByISBN("9780132130806", "123456789012");
+//
+//        assertEquals(validBook, resultBook);
+//        verify(mockDatabaseService, times(1)).getBookByISBN("9780132130806");
+//        verifyNoMoreInteractions(mockDatabaseService);
+//    }
+
+
+    // test public void returnBook(String ISBN)
+    @Test
+    public void testReturnBookWithInvalidISBN() {
+        assertThrows(IllegalArgumentException.class, () -> library.returnBook("Invalid ISBN"));
+        verifyNoInteractions(mockDatabaseService);
+    }
+
+    @Test
+    public void testReturnBookWithNotFoundISBN() {
+        when(mockDatabaseService.getBookByISBN("9780132130806")).thenReturn(null);
+        assertThrows(BookNotFoundException.class, () -> library.returnBook("9780132130806"));
+    }
+
+    @Test
+    public void testReturnBookNotBorrowed() {
+        Book notBorrowedBook = Mockito.mock(Book.class);
+        when(notBorrowedBook.isBorrowed()).thenReturn(false);
+        when(mockDatabaseService.getBookByISBN("9780132130806")).thenReturn(notBorrowedBook);
+
+        assertThrows(BookNotBorrowedException.class, () -> library.returnBook("9780132130806"));
+
+        verify(mockDatabaseService, times(1)).getBookByISBN("9780132130806");
+        verifyNoMoreInteractions(mockDatabaseService);
+    }
+
+//    @Test
+//    public void testReturnBookValidISBNAndBorrowed() {
+//
+//        when(mockBook2.isBorrowed()).thenReturn(true);
+//        when(mockDatabaseService.getBookByISBN("9780132130806")).thenReturn(mockBook2);
+//
+//        library.returnBook("9780132130806");
+//
+//        verify(mockBook2, times(1)).returnBook();
+//        verify(mockDatabaseService, times(1)).returnBook("9780132130806");
+//        verify(mockDatabaseService, times(1)).getBookByISBN("9780132130806");
+//        verifyNoMoreInteractions(mockDatabaseService, mockBook2);
+//    }
+
 
     // Parameterized test for invalid ISBNs
     @ParameterizedTest
@@ -170,7 +313,7 @@ public class TestLibrary {
     @ValueSource(strings = {"", "123", "Author123", "Author$Name", "Author--Name"})
     void testInvalidAuthor(String invalidAuthor) {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> library.addBook(new Book("1234567890123", "Title", invalidAuthor)));
+                () -> library.addBook(new Book("9780132130806", "Title", invalidAuthor)));
         assertEquals("Invalid author.", exception.getMessage());
     }
 
