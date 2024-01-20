@@ -541,7 +541,8 @@ public class TestLibrary {
                     "Notification failed! Retrying attempt 3/5\r\n" +
                     "Notification failed! Retrying attempt 4/5\r\n" +
                     "Notification failed! Retrying attempt 5/5\r\n";
-            assertEquals(expectedLog, outputStream.toString());
+
+            assertEquals(expectedLog.replaceAll("\\r\\n", "\n"), outputStream.toString().replaceAll("\\r\\n", "\n"));
             outputStream.reset();
 
         } finally {
