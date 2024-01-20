@@ -17,10 +17,17 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+
+
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.util.List;
+
 public class TestLibrary {
 
     @Mock
@@ -43,8 +50,12 @@ public class TestLibrary {
     List<String> spyListReviews = spy(new ArrayList<>());
     @BeforeEach
     void init() {
+        // 1. Arrange
+        // 1.1 init the mocks
         MockitoAnnotations.openMocks(this);
+        // 1.2 init the spy
         spyListReviews.clear();
+        // 1.3 Create an instance of Library with mocks
         library = new Library(mockDatabaseService, mockReviewService);
     }
 
@@ -52,18 +63,24 @@ public class TestLibrary {
     @Test
     void testAddBook() {
         // Mock Book
+        // 1.4. Stubbing - Define behavior for mockBook
         when(mockBook.getISBN()).thenReturn("9780132130806");
         when(mockBook.getTitle()).thenReturn("Mock Book");
         when(mockBook.getAuthor()).thenReturn("Mock Author");
         when(mockBook.isBorrowed()).thenReturn(false);
 
         // Mock DatabaseService
+        // 1.5. Stubbing - Define behavior for mockDatabaseService
         when(mockDatabaseService.getBookByISBN("1234567890123")).thenReturn(null);
 
         // Test addBook method, if the addBook method throws an exception during its execution, the test would fail.
+        // 2. Action
+        // 2.1. Call the method under test
         assertDoesNotThrow(() -> library.addBook(mockBook));
 
         // the addBook method is void so use verify that the function has been called
+        // 3. Assertion
+        // 3.1. Verify interactions
         verify(mockDatabaseService).addBook("9780132130806", mockBook);
 
         // Verify that borrow is not called on the mockBook
@@ -480,36 +497,58 @@ public class TestLibrary {
         // Verify that the review service was called with the correct ISBN
         verify(mockReviewService, times(1)).getReviewsForBook(ISBN);
     }
-
 //    @Test
+//    test function notifyUserWithBookReviews with valid parameters no failures
 //    void testSendNotificationWithRetries() {
 //
 //    }
+    @Test
+    public void testNotificationRetryFailure() throws NotificationException, ReviewException {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        PrintStream originalErr = System.err;
+        System.setErr(new PrintStream(outputStream));
+        try {
+            // Set up mocks and stubbing
+            String validISBN = "9780132130806";
+            String validUserId = "123456789012";
 
-//    @Test
-//    public void testNotificationRetryFailure() {
-//        String notificationMessage = "Test message";
-//
-//        // Mock User
-//        when(mockUser.getId()).thenReturn("123456789012");
-//        when(mockUser.getName()).thenReturn("Mock User");
-//        when(mockUser.getNotificationService()).thenReturn(mock(NotificationService.class));
-//
-//        // Mock NotificationService to throw NotificationException for all 5 attempts
-//        doThrow(new NotificationException("Notification failed!")).when(mockUser).sendNotification(notificationMessage);
-//
-//        // Execute the method under test and expect NotificationException
-//        NotificationException exception = assertThrows(NotificationException.class,
-//                () -> library.notifyUserWithBookReviews("9780132130806", "123456789012"));
-//
-//        // Verify that sendNotification was called 5 times
-//        verify(mockUser, times(5)).sendNotification(notificationMessage);
-//
-//        // Verify the exception message
-//        assertEquals("Notification failed!", exception.getMessage());
-//    }
+            when(mockDatabaseService.getBookByISBN(validISBN)).thenReturn(mockBook);
+            when(mockDatabaseService.getUserById(validUserId)).thenReturn(mockUser);
 
+            // Mock reviews
+            spyListReviews = Arrays.asList("Review 1", "Review 2");
+            when(mockReviewService.getReviewsForBook(validISBN)).thenReturn(spyListReviews);
 
+            // Mock NotificationService to throw NotificationException
+            doThrow(new NotificationException("Notification failed!")).when(mockUser).sendNotification(anyString());
+
+            // Test the notification section of the method
+            NotificationException exception = assertThrows(NotificationException.class,
+                    () -> new Library(mockDatabaseService, mockReviewService).notifyUserWithBookReviews(validISBN, validUserId));
+
+            assertEquals("Notification failed!", exception.getMessage());
+            //assertEquals(NotificationException.string, string)
+
+            // Verify that sendNotification was called 5 times
+            verify(mockUser, times(5)).sendNotification(anyString());
+
+            // Verify that the notification message was constructed correctly
+            verify(mockBook, times(1)).getTitle(); // Assuming getTitle is a method in Book class
+            verify(mockReviewService, times(1)).getReviewsForBook(validISBN);
+
+            String expectedLog = "Notification failed! Retrying attempt 1/5\r\n" +
+                    "Notification failed! Retrying attempt 2/5\r\n" +
+                    "Notification failed! Retrying attempt 3/5\r\n" +
+                    "Notification failed! Retrying attempt 4/5\r\n" +
+                    "Notification failed! Retrying attempt 5/5\r\n";
+            assertEquals(expectedLog, outputStream.toString());
+            outputStream.reset();
+
+        } finally {
+            // Restore the original System.err
+            System.setErr(originalErr);
+        }
+    }
 
 
     // Test getBookByISBN method
@@ -569,11 +608,6 @@ public class TestLibrary {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> library.getBookByISBN("9780132130806", userId));
         assertEquals("Invalid user Id.", exception.getMessage());
     }
-
-
-
-
-
 
     /* Parameterized test for invalid ISBNs */
 
