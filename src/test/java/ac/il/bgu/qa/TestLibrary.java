@@ -497,11 +497,36 @@ public class TestLibrary {
         // Verify that the review service was called with the correct ISBN
         verify(mockReviewService, times(1)).getReviewsForBook(ISBN);
     }
-//    @Test
-//    test function notifyUserWithBookReviews with valid parameters no failures
-//    void testSendNotificationWithRetries() {
-//
-//    }
+    @Test
+    //test function notifyUserWithBookReviews with valid parameters no failures
+    void testSendNotificationWithRetries() throws NotificationException, ReviewException {
+
+        // Set up mocks and stubbing for a valid scenario
+        String validISBN = "9780132130806";
+        String validUserId = "123456789012";
+
+        when(mockDatabaseService.getBookByISBN(validISBN)).thenReturn(mockBook);
+        when(mockDatabaseService.getUserById(validUserId)).thenReturn(mockUser);
+
+        // Mock reviews
+        List<String> reviews = Arrays.asList("Review 1", "Review 2");
+        when(mockReviewService.getReviewsForBook(validISBN)).thenReturn(reviews);
+
+        // Test the valid scenario
+        assertDoesNotThrow(() -> new Library(mockDatabaseService, mockReviewService)
+                .notifyUserWithBookReviews(validISBN, validUserId));
+
+        // Verify that sendNotification was called once
+        verify(mockUser, times(1)).sendNotification(anyString());
+
+        // Verify that the notification message was constructed correctly
+        verify(mockBook, times(1)).getTitle(); // Assuming getTitle is a method in Book class
+        verify(mockReviewService, times(1)).getReviewsForBook(validISBN);
+
+        // Verify that reviewService.close() was called
+        verify(mockReviewService, times(1)).close();
+    }
+
     @Test
     public void testNotificationRetryFailure() throws NotificationException, ReviewException {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
