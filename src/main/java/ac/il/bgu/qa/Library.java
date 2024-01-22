@@ -31,11 +31,11 @@ public class Library {
     public void addBook(Book book) {
         // Multiple checks to validate the book object's properties
         if (book == null) {
-            throw new IllegalArgumentException("Invalid book.");
+            throw new IllegalArgumentException("Invalid book."); //V
         } else if (!isISBNValid(book.getISBN())){
-            throw new IllegalArgumentException("Invalid ISBN.");
+            throw new IllegalArgumentException("Invalid ISBN."); //V
         } else if (book.getTitle() == null || book.getTitle().equals("")) {
-            throw new IllegalArgumentException("Invalid title.");
+            throw new IllegalArgumentException("Invalid title."); //V
         } else if (!isAuthorValid(book.getAuthor())) {
             throw new IllegalArgumentException("Invalid author.");
         } else if (book.isBorrowed()) {
