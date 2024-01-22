@@ -273,11 +273,11 @@ public class TestLibrary {
 
         // 2. Action
         // 2.1. Call the method under test
-        IllegalArgumentException exception2 = assertThrows(IllegalArgumentException.class, () -> library.borrowBook(null, userId));
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> library.borrowBook(null, userId));
 
         // 3. Assertion
         // 3.1. Assert interactions
-        assertEquals("Invalid ISBN.", exception2.getMessage());
+        assertEquals("Invalid ISBN.", exception.getMessage());
     }
 
     @Test
@@ -290,12 +290,101 @@ public class TestLibrary {
 
         // 2. Action
         // 2.1. Call the method under test
-        BookNotFoundException exception2 = assertThrows(BookNotFoundException.class, () -> library.borrowBook("9780132130806", userId));
+        BookNotFoundException exception = assertThrows(BookNotFoundException.class, () -> library.borrowBook("9780132130806", userId));
 
         // 3. Assertion
         // 3.1. Assert interactions
-        assertEquals("Book not found!", exception2.getMessage());
+        assertEquals("Book not found!", exception.getMessage());
     }
+
+    @Test
+    public void testBorrowBookWithInvalidUser() {
+        String userId = "Invalid user";
+
+        // 1.4. Stubbing - Define behavior for mockDatabaseService
+        when(mockDatabaseService.getUserById(userId)).thenReturn(mockUser);
+        when(mockDatabaseService.getBookByISBN("9780132130806")).thenReturn(mockBook);
+
+        // 2. Action
+        // 2.1. Call the method under test
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> library.borrowBook("9780132130806", userId));
+
+        // 3. Assertion
+        // 3.1. Assert interactions
+        assertEquals("Invalid user Id.", exception.getMessage());
+    }
+
+    @Test
+    public void testBorrowBookWithNullUserId() {
+        String userId = null;
+
+        // 1.4. Stubbing - Define behavior for mockDatabaseService
+        when(mockDatabaseService.getUserById(userId)).thenReturn(null);
+        when(mockDatabaseService.getBookByISBN("9780132130806")).thenReturn(mockBook);
+
+
+        // 2. Action
+        // 2.1. Call the method under test
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> library.borrowBook("9780132130806", userId));
+
+        // 3. Assertion
+        // 3.1. Assert interactions
+        assertEquals("Invalid user Id.", exception.getMessage());
+    }
+
+
+    @Test
+    public void testBorrowBookWithInvalidUserId() {
+        String userId = "InvalidUserId";
+        // 1.4. Stubbing - Define behavior for mockDatabaseService
+        when(mockDatabaseService.getUserById(userId)).thenReturn(null);
+        when(mockDatabaseService.getBookByISBN("9780132130806")).thenReturn(mockBook);
+
+        // 2. Action
+        // 2.1. Call the method under test
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> library.borrowBook("9780132130806", null));
+
+        // 3. Assertion
+        // 3.1. Assert interactions
+        assertEquals("Invalid user Id.", exception.getMessage());
+    }
+
+
+    @Test
+    public void testBorrowBookByNotRegisteredUser(){
+        String userId = "123456789012";
+        // 1.4. Stubbing - Define behavior for mockDatabaseService
+        when(mockDatabaseService.getUserById(userId)).thenReturn(null);
+        when(mockDatabaseService.getBookByISBN("9780132130806")).thenReturn(mockBook);
+
+        // 2. Action
+        // 2.1. Call the method under test
+        UserNotRegisteredException exception = assertThrows(UserNotRegisteredException.class, () -> library.borrowBook("9780132130806", userId));
+
+        // 3. Assertion
+        // 3.1. Assert interactions
+        assertEquals("User not found!", exception.getMessage());
+    }
+
+
+
+    @Test
+    public void testBorrowBookWithBorrowedBook(){
+        String userId = "123456789012";
+        // 1.4. Stubbing - Define behavior for mockDatabaseService
+        when(mockDatabaseService.getUserById(userId)).thenReturn(mockUser);
+        when(mockDatabaseService.getBookByISBN("9780132130806")).thenReturn(mockBook);
+        when(mockBook.isBorrowed()).thenReturn(true);
+
+        // 2. Action
+        // 2.1. Call the method under test
+        BookAlreadyBorrowedException exception = assertThrows(BookAlreadyBorrowedException.class, () -> library.borrowBook("9780132130806", userId));
+
+        // 3. Assertion
+        // 3.1. Assert interactions
+        assertEquals("Book is already borrowed!", exception.getMessage());
+    }
+
 
 
     // Test registerUser method
@@ -425,55 +514,10 @@ public class TestLibrary {
     }
 
 
-    @Test
-    public void testBorrowBookWithInvalidUserId() {
-        String userId = "InvalidUserId";
-
-        // 1.4. Stubbing - Define behavior for mockDatabaseService
-        when(mockDatabaseService.getUserById(userId)).thenReturn(null);
-        when(mockDatabaseService.getBookByISBN("9780132130806")).thenReturn(mockBook);
-
-        // 2. Action
-        // 2.1. Call the method under test
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> library.borrowBook("9780132130806", userId));
-
-        // 3. Assertion
-        // 3.1. Assert interactions
-        assertEquals("Invalid user Id.", exception.getMessage());
-    }
-
-    @Test
-    public void testBorrowBookWithNullUserId() {
-        String userId = "InvalidUserId";
-        // 1.4. Stubbing - Define behavior for mockDatabaseService
-        when(mockDatabaseService.getUserById(userId)).thenReturn(null);
-        when(mockDatabaseService.getBookByISBN("9780132130806")).thenReturn(mockBook);
-
-        // 2. Action
-        // 2.1. Call the method under test
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> library.borrowBook("9780132130806", null));
-
-        // 3. Assertion
-        // 3.1. Assert interactions
-        assertEquals("Invalid user Id.", exception.getMessage());
-    }
 
 
-    @Test
-    public void testBorrowBookByNotRegisteredUser(){
-        String userId = "123456789012";
-        // 1.4. Stubbing - Define behavior for mockDatabaseService
-        when(mockDatabaseService.getUserById(userId)).thenReturn(null);
-        when(mockDatabaseService.getBookByISBN("9780132130806")).thenReturn(mockBook);
 
-        // 2. Action
-        // 2.1. Call the method under test
-        UserNotRegisteredException exception = assertThrows(UserNotRegisteredException.class, () -> library.borrowBook("9780132130806", userId));
 
-        // 3. Assertion
-        // 3.1. Assert interactions
-        assertEquals("User not found!", exception.getMessage());
-    }
 
     @Test
     void testReturnBook() {
