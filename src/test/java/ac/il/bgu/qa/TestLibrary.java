@@ -622,7 +622,6 @@ public class TestLibrary {
         // Verify that the notification service was called with the correct parameters
         String expectedMessage = "Reviews for 'Book Title':\nGreat book!\nHighly recommended!";
         verify(mockUser, times(1)).sendNotification(expectedMessage);
-        verify(mockUser, times(1)).sendNotification(anyString()); // TODO: check why it's not working with "expectedMessage". Amit: Done! the string of expectedMessage was wrong
     }
 
     @Test
