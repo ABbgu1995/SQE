@@ -354,8 +354,7 @@ public class Library {
         try {
             notifyUserWithBookReviews(ISBN, userId);
         } catch (Exception e) {
-            System.out.println("Notification failed!");
-        }
+            System.out.println("Notification failed!");}
 
         // Return the retrieved book.
         return book;
